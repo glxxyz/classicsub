@@ -1,0 +1,5 @@
+C:\Users\adavies1\Downloads\TestOutlineText\TextDesignerCSLibrary\bin\Debug\TextDesignerCSLibrary.dll
+C:\Users\adavies1\Downloads\TestOutlineText\TextDesignerCSLibrary\bin\Debug\TextDesignerCSLibrary.pdb
+C:\Users\adavies1\Downloads\TestOutlineText\TextDesignerCSLibrary\obj\Debug\ResolveAssemblyReference.cache
+C:\Users\adavies1\Downloads\TestOutlineText\TextDesignerCSLibrary\obj\Debug\TextDesignerCSLibrary.dll
+C:\Users\adavies1\Downloads\TestOutlineText\TextDesignerCSLibrary\obj\Debug\TextDesignerCSLibrary.pdb
