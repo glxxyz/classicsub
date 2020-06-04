@@ -285,17 +285,31 @@ namespace ClassicSub
             return time;
         }
 
+        static public string FormatHMSTime(int time, bool doubleHour)
+        {
+            int temp = time;
+            int hours = temp / (60 * 60 * 1000);
+            temp -= hours * (60 * 60 * 1000);
+            int mins = temp / (60 * 1000);
+            temp -= mins * (60 * 1000);
+            double floatSecs = ((double)temp) / 1000;
+
+            string format = "{0}:{1:00}:{2:00.000}";
+
+            if (doubleHour)
+            {
+                format = "{0:00}:{1:00}:{2:00.000}";
+            }
+
+            string formatted = String.Format(format, hours, mins, floatSecs);
+            return formatted;
+        }
+
         public string Start
         {
             get
             {
-                int temp = StartMs;
-                int hours = temp / (60 * 60 * 1000);
-                temp -= hours * (60 * 60 * 1000);
-                int mins = temp / (60 * 1000);
-                temp -= mins * (60 * 1000);
-                double floatSecs = ((double)temp) / 1000;
-                string formatted = String.Format("{0}:{1:00}:{2:00.000}", hours, mins, floatSecs);
+                string formatted = FormatHMSTime(StartMs, false);
                 return formatted;
             }
             set
@@ -310,13 +324,7 @@ namespace ClassicSub
 
         public string GetStartForSRT()
         {
-            int temp = StartMs;
-            int hours = temp / (60 * 60 * 1000);
-            temp -= hours * (60 * 60 * 1000);
-            int mins = temp / (60 * 1000);
-            temp -= mins * (60 * 1000);
-            double floatSecs = ((double)temp) / 1000;
-            string formatted = String.Format("{0:00}:{1:00}:{2:00.000}", hours, mins, floatSecs);
+            string formatted = FormatHMSTime(StartMs, true);
             return formatted.Replace(".",",");
         }
 
@@ -324,13 +332,7 @@ namespace ClassicSub
         {
             get
             {
-                int temp = EndMs;
-                int hours = temp / (60 * 60 * 1000);
-                temp -= hours * (60 * 60 * 1000);
-                int mins = temp / (60 * 1000);
-                temp -= mins * (60 * 1000);
-                double floatSecs = ((double)temp) / 1000;
-                string formatted = String.Format("{0}:{1:00}:{2:00.000}", hours, mins, floatSecs);
+                string formatted = FormatHMSTime(EndMs, false);
                 return formatted;
             }
             set
@@ -345,13 +347,7 @@ namespace ClassicSub
 
         public string GetEndForSRT()
         {
-            int temp = EndMs;
-            int hours = temp / (60 * 60 * 1000);
-            temp -= hours * (60 * 60 * 1000);
-            int mins = temp / (60 * 1000);
-            temp -= mins * (60 * 1000);
-            double floatSecs = ((double)temp) / 1000;
-            string formatted = String.Format("{0:00}:{1:00}:{2:00.000}", hours, mins, floatSecs);
+            string formatted = FormatHMSTime(EndMs, true);
             return formatted.Replace(".", ",");
         }
 
@@ -418,13 +414,13 @@ namespace ClassicSub
                                 // Only create a new subtitle if the subtitle number can be read
                                 try
                                 {
-                                    int subNum = Convert.ToInt32(line);
+                                    int subNum = Convert.ToInt32(lineNum);
                                     subObj = new Subtitle();
                                     subObj.Number = subNum;
                                 }
                                 catch (Exception ex)
                                 {
-                                    string message = String.Format("Error on line {0}.\nInvalid Subtitle Number: {1}\nException: {2}", lineNum, line, ex.Message);
+                                    string message = String.Format("Error on line {0}."  + Environment.NewLine + "Invalid Subtitle Number: {1}\nException: {2}", lineNum, line, ex.Message);
                                     MessageBox.Show(message);
                                     return null;
                                 }
@@ -451,7 +447,7 @@ namespace ClassicSub
                                     }
                                     else
                                     {
-                                        string message = String.Format("Error on line {0}.\nInvalid Subtitle Timing: {1}", lineNum, line);
+                                        string message = String.Format("Error on line {0}." + Environment.NewLine + "Invalid Subtitle Timing: {1}", lineNum, line);
                                         MessageBox.Show(message);
                                         return null;
                                     }
@@ -466,7 +462,7 @@ namespace ClassicSub
                                     else
                                     {
                                         // append it to the previous lines.
-                                        subObj.SubText1 = subObj.SubText1 + "\r\n" + line;
+                                        subObj.SubText1 = subObj.SubText1 + Environment.NewLine + line;
                                     }
                                 }
                             }
@@ -483,5 +479,62 @@ namespace ClassicSub
 
             return subListTemp;
         }
+
+        public static BindingList<Subtitle> ReadSUBFile(string fileName, double frameRate)
+        {
+            BindingList<Subtitle> subListTemp = null;
+            int lineNum = 0;
+
+            try
+            {
+                FileInfo fi = new FileInfo(fileName);
+
+                if (fi.Exists)
+                {
+                    using (FileStream fs = new FileStream(fileName, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
+                    {
+                        using (StreamReader reader = new StreamReader(fs))
+                        {
+                            subListTemp = new BindingList<Subtitle>();
+
+                            string line;
+
+                            while ((line = reader.ReadLine()) != null)
+                            {
+                                lineNum++;
+                                line = line.Trim();
+
+                                if (line != "")
+                                {
+                                    string regex = @"\{(\d+)\}\{(\d+)\}(.+)";
+                                    Match match = Regex.Match(line, regex);
+
+                                    if (match.Success)
+                                    {
+                                        Subtitle subObj = new Subtitle();
+                                        subObj.Number = Convert.ToInt32(lineNum);
+
+                                        subObj.StartMs = Convert.ToInt32(double.Parse(match.Groups[1].ToString()) * 1000 / frameRate);
+                                        subObj.EndMs = Convert.ToInt32(double.Parse(match.Groups[2].ToString()) * 1000 / frameRate);
+                                        subObj.SubText1 = match.Groups[3].ToString().Replace("|", Environment.NewLine);
+
+                                        subListTemp.Add(subObj);
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }   
+            catch (Exception ex)
+            {
+                string message = String.Format("Error on line {0}." + Environment.NewLine + "Exception: {1}", lineNum, ex.Message);
+                MessageBox.Show(message);
+                return null;
+            }
+
+            return subListTemp;
+        }
+
     }
 }

@@ -81,7 +81,7 @@ namespace ClassicSub.Code
             }
             catch (Exception ex)
             {
-                string message = String.Format("Cannot Deserialize Style.\nException: {0}", ex.Message);
+                string message = String.Format("Cannot Deserialize Style." + Environment.NewLine + "Exception: {0}", ex.Message);
                 MessageBox.Show(message);
             }
 

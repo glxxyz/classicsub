@@ -51,7 +51,7 @@
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <PropertyGroup>
-    <ManifestCertificateThumbprint>C5585055F5EC16362AB8864CC228A21A1A20B51E</ManifestCertificateThumbprint>
+    <ManifestCertificateThumbprint>AB11046CBAD78F31967AB8605A4ED1B3E3CCDDE8</ManifestCertificateThumbprint>
   </PropertyGroup>
   <PropertyGroup>
     <ManifestKeyFile>ClassicSub_TemporaryKey.pfx</ManifestKeyFile>
@@ -67,6 +67,9 @@
   </PropertyGroup>
   <PropertyGroup>
     <ApplicationManifest>Properties\app.manifest</ApplicationManifest>
+  </PropertyGroup>
+  <PropertyGroup>
+    <ApplicationIcon>Config\Sub.ico</ApplicationIcon>
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="DotNetOpenAuth">
@@ -136,6 +139,18 @@
     <Compile Include="Forms\AppendForm.Designer.cs">
       <DependentUpon>AppendForm.cs</DependentUpon>
     </Compile>
+    <Compile Include="Forms\FrameRateForm.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="Forms\FrameRateForm.Designer.cs">
+      <DependentUpon>FrameRateForm.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Forms\ScaleForm.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="Forms\ScaleForm.Designer.cs">
+      <DependentUpon>ScaleForm.cs</DependentUpon>
+    </Compile>
     <Compile Include="Forms\OverlayStyle.cs">
       <SubType>Form</SubType>
     </Compile>
@@ -199,6 +214,12 @@
     <EmbeddedResource Include="Forms\AppendForm.resx">
       <DependentUpon>AppendForm.cs</DependentUpon>
     </EmbeddedResource>
+    <EmbeddedResource Include="Forms\FrameRateForm.resx">
+      <DependentUpon>FrameRateForm.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Forms\ScaleForm.resx">
+      <DependentUpon>ScaleForm.cs</DependentUpon>
+    </EmbeddedResource>
     <EmbeddedResource Include="Forms\OverlayStyle.resx">
       <DependentUpon>OverlayStyle.cs</DependentUpon>
     </EmbeddedResource>
@@ -229,6 +250,7 @@
       <DependentUpon>SeekForm.cs</DependentUpon>
     </EmbeddedResource>
     <None Include="app.config" />
+    <None Include="ClassicSub_TemporaryKey.pfx" />
     <None Include="Config\app.config" />
     <None Include="Data\cedict_ts.u8" />
     <None Include="Data\customdict.u8" />

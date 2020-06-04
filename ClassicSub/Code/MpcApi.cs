@@ -152,12 +152,19 @@ namespace MpcApi
         // Par 1 : none.
         CMD_NOTIFYENDOFSTREAM = 0x50000009,
 
+        // Send version str
+        // Par 1 : mpc-hc version
+        CMD_VERSION = 0x5000000A, // Note: new in 2012!
+
         // List of files in the playlist
         // Par 1 : file path 0
         // Par 2 : file path 1
         // ...
         // Par n : active file, -1 if no active file
         CMD_PLAYLIST = 0x50000006,
+
+        // Send information about mpc closing
+        CMD_DISCONNECT = 0x5000000B, // Note: new in 2012!
 
 
         // ==== Commands from host to MPC
@@ -174,6 +181,12 @@ namespace MpcApi
 
         // Pause or restart playback
         CMD_PLAYPAUSE = 0xA0000003,
+
+        // Unpause playback
+        CMD_PLAY = 0xA0000004, // Note: new in 2012!
+
+        // Pause playback
+        CMD_PAUSE = 0xA0000005, // Note: new in 2012!
 
         // Add a new file to playlist (did not start playing)
         // Par 1 : file path
@@ -225,6 +238,9 @@ namespace MpcApi
         // Par 1 : seconds (negative values for backward)
         CMD_JUMPOFNSECONDS = 0xA0003005,
 
+        // ask slave for version
+        CMD_GETVERSION = 0xA0003006,  // Note: new in 2012!
+
         // Ask for a list of the audio tracks of the file
         // return a CMD_LISTAUDIOTRACKS
         CMD_GETAUDIOTRACKS = 0xA0003001,
@@ -257,6 +273,9 @@ namespace MpcApi
 
         // Close App
         CMD_CLOSEAPP = 0xA0004006,
+
+        // Set playing rate
+        CMD_SETSPEED = 0xA0004008,  // Note: new in 2012!
 
         // show host defined OSD message string
         CMD_OSDSHOWMESSAGE = 0xA0005000,
@@ -373,8 +392,14 @@ namespace MpcApi
                 case MPCAPI_COMMAND.CMD_NOTIFYENDOFSTREAM:
                     name = "CMD_NOTIFYENDOFSTREAM";
                     break;
+                case MPCAPI_COMMAND.CMD_VERSION:
+                    name = "CMD_VERSION";
+                    break;
                 case MPCAPI_COMMAND.CMD_PLAYLIST:
                     name = "CMD_PLAYLIST";
+                    break;
+                case MPCAPI_COMMAND.CMD_DISCONNECT:
+                    name = "CMD_DISCONNECT";
                     break;
                 default:
                     name = String.Format("Unknown Command: 0x{0:X8}", (int)cmd);
@@ -491,6 +516,7 @@ namespace MpcApi
                                 VideoCurrentlyOpen = true;
                                 PausedPositionMs = 0;
                                 NotifyLoaded();
+                                // SendGetNowPlaying(); // request title info
                                 break;
                             case MPC_LOADSTATE.MLS_CLOSING:
                                 VideoCurrentlyPlaying = false;
@@ -514,6 +540,7 @@ namespace MpcApi
                             case MPC_PLAYSTATE.PS_PAUSE:
                                 PausedPositionMs = CurrentPositionMs; // set the paused position
                                 VideoCurrentlyPlaying = false;
+                                SendGetCurrentPosition();
                                 NotifyPause();
                                 break;
                             case MPC_PLAYSTATE.PS_STOP:
@@ -535,9 +562,9 @@ namespace MpcApi
                         // Par 4 : complete filename (path included)
                         // Par 5 : duration in seconds
                         string[] parms = mystr.lpData.Split('|');
-                        int duration = Convert.ToInt32(parms[4]);
+                        int duration = (int)(double.Parse(parms[4]) * 1000);                        
                         VideoFileName = System.IO.Path.GetFileName(parms[3]);
-                        VideoDurationMs = duration * 1000;
+                        VideoDurationMs = duration;
                         NotifyNowPlaying(parms[0], parms[1], parms[2], parms[3], duration);
                         ResyncTime();
                         break;
@@ -550,18 +577,38 @@ namespace MpcApi
 
                     case MPCAPI_COMMAND.CMD_CURRENTPOSITION:
                     {
-                        int currentPos = int.Parse(mystr.lpData) * 1000;
-                        ContinueResync(currentPos);
+                        try
+                        {
+                            int currentPos = int.Parse(mystr.lpData) * 1000;
+                            ContinueResync(currentPos);
+                        }
+                        catch
+                        {
+                            LastReportedPositionMs = (int)(double.Parse(mystr.lpData) * 1000);
+                            LastReportedDateTime = DateTime.UtcNow;
+                            PausedPositionMs = LastReportedPositionMs;
+                            needToDoResyncs = false;
+                        } 
                     }
                     break;
 
                     case MPCAPI_COMMAND.CMD_NOTIFYSEEK:
                     {
-                        int currentPos = int.Parse(mystr.lpData) * 1000;
-                        LastReportedDateTime = DateTime.UtcNow;
-                        LastReportedPositionMs = currentPos;
-                        PausedPositionMs = currentPos;
-                        ResyncTime();
+                        try
+                        {
+                            int currentPos = int.Parse(mystr.lpData) * 1000;
+                            LastReportedDateTime = DateTime.UtcNow;
+                            LastReportedPositionMs = currentPos;
+                            PausedPositionMs = currentPos;
+                            ResyncTime();
+                        }
+                        catch
+                        {
+                            LastReportedPositionMs = (int)(float.Parse(mystr.lpData) * 1000);
+                            LastReportedDateTime = DateTime.UtcNow;
+                            PausedPositionMs = LastReportedPositionMs;
+                            needToDoResyncs = false;
+                        }                                            
                     }
                     break;
 
@@ -569,6 +616,15 @@ namespace MpcApi
                         break;
 
                     case MPCAPI_COMMAND.CMD_PLAYLIST:
+                        break;
+
+                    case MPCAPI_COMMAND.CMD_DISCONNECT:
+                        VideoFileName = "";
+                        VideoDurationMs = 0;
+                        VideoCurrentlyPlaying = false;
+                        VideoCurrentlyOpen = false;
+                        MediaPlayerHandle = 0;
+                        NotifyDisconnected();
                         break;
 
                     default:
@@ -609,7 +665,15 @@ namespace MpcApi
                 String filename = GetMPCPath();
                 String arguments = String.Format("/slave {0}", Handle);
                 MediaPlayerHandle = 0;
-                MediaPlayerProcess = System.Diagnostics.Process.Start(filename, arguments);
+
+                try
+                {
+                    MediaPlayerProcess = System.Diagnostics.Process.Start(filename, arguments);
+                }
+                catch(Exception ex)
+                {
+                    MessageBox.Show(ex.Message + " " + filename);
+                }
             }
             else
             {
@@ -648,11 +712,11 @@ namespace MpcApi
 
                     if (is64Bit)
                     {
-                        mpcPath = "C:\\Program Files (x86)\\Combined Community Codec Pack\\MPC\\mpc-hc.exe";
+                        mpcPath = "C:\\Program Files (x86)\\Combined Community Codec Pack 2012\\MPC\\mpc-hc.exe";
                     }
                     else
                     {
-                        mpcPath = "C:\\Program Files\\Combined Community Codec Pack\\MPC\\mpc-hc.exe";
+                        mpcPath = "C:\\Program Files\\Combined Community Codec Pack 2012\\MPC\\mpc-hc.exe";
                     }
 
                 }
@@ -692,12 +756,12 @@ namespace MpcApi
             SendMessageToMPC(MPCAPI_COMMAND.CMD_STOP, "");
         }
 
-        public void SendJump(int seconds)
+        public void SendJump(double seconds)
         {
             SendMessageToMPC(MPCAPI_COMMAND.CMD_JUMPOFNSECONDS, seconds.ToString());
         }
 
-        public void SendSetPosition(int seconds)
+        public void SendSetPosition(double seconds)
         {
             SendMessageToMPC(MPCAPI_COMMAND.CMD_SETPOSITION, seconds.ToString());
         }
@@ -707,9 +771,15 @@ namespace MpcApi
             SendMessageToMPC(MPCAPI_COMMAND.CMD_GETCURRENTPOSITION, "");
         }
 
+        static public void SendGetNowPlaying()
+        {
+            SendMessageToMPC(MPCAPI_COMMAND.CMD_GETNOWPLAYING, "");
+        }
+
 
         // Notification methods to be overridden
         protected virtual void NotifyConnected() { }
+        protected virtual void NotifyDisconnected() { }
         protected virtual void NotifyClosed() { }
         protected virtual void NotifyLoading() { }
         protected virtual void NotifyLoaded() { }
@@ -719,11 +789,19 @@ namespace MpcApi
         protected virtual void NotifyStop() { }
         protected virtual void NotifyNowPlaying(string title, string author, string description, string filename, int durationSeconds) { }
 
-
+        // The Resync thing is due to earlier versions of MPC not supporting times at an accuracy greater than 1 second.
+        // It shouldn't be used now (2012 and on), and it simply gets the current position instead
         private DateTime ResyncStartedTime;
         private int LastResyncMs = -1;
+        private bool needToDoResyncs = true;
         public void ResyncTime()
         {
+            if (!needToDoResyncs)
+            {
+                SendGetCurrentPosition();
+                return;
+            }
+
             // Only attempt a resync if a video is currently playing
             if (VideoCurrentlyPlaying)
             {
@@ -733,6 +811,11 @@ namespace MpcApi
         }
         void ContinueResync(int currentPos)
         {
+            if (!needToDoResyncs)
+            {
+                return;
+            }
+
             int adjustedPos = currentPos;
             DateTime now = DateTime.UtcNow;
 

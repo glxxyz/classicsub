@@ -40,14 +40,7 @@ namespace ClassicSub
 
         public void SetSeekTime(int time)
         {
-            int temp = time;
-            int hours = temp / (60 * 60 * 1000);
-            temp -= hours * (60 * 60 * 1000);
-            int mins = temp / (60 * 1000);
-            temp -= mins * (60 * 1000);
-            double floatSecs = ((double)temp) / 1000;
-            string formatted = String.Format("{0}:{1:00}:{2:00.000}", hours, mins, floatSecs);
-
+            string formatted = Subtitle.FormatHMSTime(time, false);
             maskedTextBoxSeekTime.Text = formatted;
         }
 

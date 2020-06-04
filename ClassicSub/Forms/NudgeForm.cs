@@ -14,6 +14,7 @@ namespace ClassicSub
     public partial class NudgeForm : Form
     {
         public bool okClicked = false;
+        public bool recalcDurationChecked = false;
 
         public NudgeForm()
         {
@@ -25,6 +26,7 @@ namespace ClassicSub
         private void okButton_Click(object sender, EventArgs e)
         {
             okClicked = true;
+            recalcDurationChecked = checkBoxRecalcDuration.Checked;
             Close();
         }
 
@@ -158,6 +160,52 @@ namespace ClassicSub
         private void forward20mToolStripMenuItem_Click(object sender, EventArgs e)
         {
             SendJump(20 * 60 * 1000);
+        }
+
+        private void buttonPlusMinus_Click(object sender, EventArgs e)
+        {
+            int time = GetNudge();
+
+            if (time == 0)
+            {
+                string timeText = textBoxNudgeTime.Text;
+
+                if (timeText.Length > 0 && timeText.Substring(0, 1) == "-")
+                {
+                    string newTimeText = timeText.Substring(1);
+
+                    textBoxNudgeTime.Text = newTimeText;
+                }
+                else if (!timeText.Contains("-"))
+                {
+                    string newTimeText = "-" + timeText;
+
+                    textBoxNudgeTime.Text = newTimeText;
+                }
+            }
+            else
+            {
+
+                time *= -1;
+
+                SetNudge(time);
+            }
+
+            textBoxNudgeTime_TextChanged(sender, e);
+        }
+
+        private void textBoxNudgeTime_TextChanged(object sender, EventArgs e)
+        {
+            string timeText = textBoxNudgeTime.Text;
+
+            if (timeText.Length > 0 && timeText.Substring(0, 1) == "-")
+            {
+                labelTimeHelp.Text = " h:mm:ss.ttt";
+            }
+            else
+            {
+                labelTimeHelp.Text = "h:mm:ss.ttt";
+            }
         }
     }
 }

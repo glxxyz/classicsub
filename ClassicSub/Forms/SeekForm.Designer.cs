@@ -28,7 +28,7 @@
         /// </summary>
         private void InitializeComponent()
         {
-            System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(AppendForm));
+            System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(SeekForm));
             this.cancelButton = new System.Windows.Forms.Button();
             this.okButton = new System.Windows.Forms.Button();
             this.maskedTextBoxSeekTime = new System.Windows.Forms.MaskedTextBox();
@@ -47,13 +47,14 @@
             this.forward5mToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.backward20mToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.forward20mToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.labelTimeHelp = new System.Windows.Forms.Label();
             this.menuStrip1.SuspendLayout();
             this.SuspendLayout();
             // 
             // cancelButton
             // 
             this.cancelButton.DialogResult = System.Windows.Forms.DialogResult.Cancel;
-            this.cancelButton.Location = new System.Drawing.Point(130, 71);
+            this.cancelButton.Location = new System.Drawing.Point(133, 84);
             this.cancelButton.Name = "cancelButton";
             this.cancelButton.Size = new System.Drawing.Size(75, 23);
             this.cancelButton.TabIndex = 2;
@@ -63,7 +64,7 @@
             // 
             // okButton
             // 
-            this.okButton.Location = new System.Drawing.Point(46, 71);
+            this.okButton.Location = new System.Drawing.Point(49, 84);
             this.okButton.Name = "okButton";
             this.okButton.Size = new System.Drawing.Size(75, 23);
             this.okButton.TabIndex = 1;
@@ -73,17 +74,18 @@
             // 
             // maskedTextBoxSeekTime
             // 
-            this.maskedTextBoxSeekTime.Location = new System.Drawing.Point(130, 34);
+            this.maskedTextBoxSeekTime.Font = new System.Drawing.Font("Consolas", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.maskedTextBoxSeekTime.Location = new System.Drawing.Point(133, 47);
             this.maskedTextBoxSeekTime.Mask = "0:00:00";
             this.maskedTextBoxSeekTime.Name = "maskedTextBoxSeekTime";
-            this.maskedTextBoxSeekTime.Size = new System.Drawing.Size(54, 20);
+            this.maskedTextBoxSeekTime.Size = new System.Drawing.Size(54, 22);
             this.maskedTextBoxSeekTime.TabIndex = 5;
             this.maskedTextBoxSeekTime.MaskInputRejected += new System.Windows.Forms.MaskInputRejectedEventHandler(this.maskedTextBoxSeekTime_MaskInputRejected);
             // 
             // label1
             // 
             this.label1.AutoSize = true;
-            this.label1.Location = new System.Drawing.Point(55, 37);
+            this.label1.Location = new System.Drawing.Point(58, 50);
             this.label1.Name = "label1";
             this.label1.Size = new System.Drawing.Size(69, 13);
             this.label1.TabIndex = 6;
@@ -115,7 +117,7 @@
             this.backward20mToolStripMenuItem,
             this.forward20mToolStripMenuItem});
             this.seekShortcutsToolStripMenuItem.Name = "seekShortcutsToolStripMenuItem";
-            this.seekShortcutsToolStripMenuItem.Size = new System.Drawing.Size(81, 20);
+            this.seekShortcutsToolStripMenuItem.Size = new System.Drawing.Size(83, 20);
             this.seekShortcutsToolStripMenuItem.Text = "&Seek Offsets";
             // 
             // backwardSmallToolStripMenuItem
@@ -123,7 +125,7 @@
             this.backwardSmallToolStripMenuItem.Name = "backwardSmallToolStripMenuItem";
             this.backwardSmallToolStripMenuItem.ShortcutKeyDisplayString = "Ctrl+,";
             this.backwardSmallToolStripMenuItem.ShortcutKeys = ((System.Windows.Forms.Keys)((System.Windows.Forms.Keys.Control | System.Windows.Forms.Keys.Oemcomma)));
-            this.backwardSmallToolStripMenuItem.Size = new System.Drawing.Size(226, 22);
+            this.backwardSmallToolStripMenuItem.Size = new System.Drawing.Size(240, 22);
             this.backwardSmallToolStripMenuItem.Text = "&Backward 1s";
             this.backwardSmallToolStripMenuItem.Click += new System.EventHandler(this.backwardSmallToolStripMenuItem_Click);
             // 
@@ -132,7 +134,7 @@
             this.forwardSmallToolStripMenuItem.Name = "forwardSmallToolStripMenuItem";
             this.forwardSmallToolStripMenuItem.ShortcutKeyDisplayString = "Ctrl+.";
             this.forwardSmallToolStripMenuItem.ShortcutKeys = ((System.Windows.Forms.Keys)((System.Windows.Forms.Keys.Control | System.Windows.Forms.Keys.OemPeriod)));
-            this.forwardSmallToolStripMenuItem.Size = new System.Drawing.Size(226, 22);
+            this.forwardSmallToolStripMenuItem.Size = new System.Drawing.Size(240, 22);
             this.forwardSmallToolStripMenuItem.Text = "Forward &1s";
             this.forwardSmallToolStripMenuItem.Click += new System.EventHandler(this.forwardSmallToolStripMenuItem_Click);
             // 
@@ -140,7 +142,7 @@
             // 
             this.backwardMedToolStripMenuItem.Name = "backwardMedToolStripMenuItem";
             this.backwardMedToolStripMenuItem.ShortcutKeys = ((System.Windows.Forms.Keys)((System.Windows.Forms.Keys.Control | System.Windows.Forms.Keys.Left)));
-            this.backwardMedToolStripMenuItem.Size = new System.Drawing.Size(226, 22);
+            this.backwardMedToolStripMenuItem.Size = new System.Drawing.Size(240, 22);
             this.backwardMedToolStripMenuItem.Text = "B&ackward 5s";
             this.backwardMedToolStripMenuItem.Click += new System.EventHandler(this.backwardMedToolStripMenuItem_Click);
             // 
@@ -148,7 +150,7 @@
             // 
             this.forwardMedToolStripMenuItem.Name = "forwardMedToolStripMenuItem";
             this.forwardMedToolStripMenuItem.ShortcutKeys = ((System.Windows.Forms.Keys)((System.Windows.Forms.Keys.Control | System.Windows.Forms.Keys.Right)));
-            this.forwardMedToolStripMenuItem.Size = new System.Drawing.Size(226, 22);
+            this.forwardMedToolStripMenuItem.Size = new System.Drawing.Size(240, 22);
             this.forwardMedToolStripMenuItem.Text = "Forward &5s";
             this.forwardMedToolStripMenuItem.Click += new System.EventHandler(this.forwardMedToolStripMenuItem_Click);
             // 
@@ -156,7 +158,7 @@
             // 
             this.backwardBigToolStripMenuItem.Name = "backwardBigToolStripMenuItem";
             this.backwardBigToolStripMenuItem.ShortcutKeys = ((System.Windows.Forms.Keys)((System.Windows.Forms.Keys.Control | System.Windows.Forms.Keys.Up)));
-            this.backwardBigToolStripMenuItem.Size = new System.Drawing.Size(226, 22);
+            this.backwardBigToolStripMenuItem.Size = new System.Drawing.Size(240, 22);
             this.backwardBigToolStripMenuItem.Text = "Ba&ckward 20s";
             this.backwardBigToolStripMenuItem.Click += new System.EventHandler(this.backwardBigToolStripMenuItem_Click);
             // 
@@ -164,7 +166,7 @@
             // 
             this.forwardBigToolStripMenuItem.Name = "forwardBigToolStripMenuItem";
             this.forwardBigToolStripMenuItem.ShortcutKeys = ((System.Windows.Forms.Keys)((System.Windows.Forms.Keys.Control | System.Windows.Forms.Keys.Down)));
-            this.forwardBigToolStripMenuItem.Size = new System.Drawing.Size(226, 22);
+            this.forwardBigToolStripMenuItem.Size = new System.Drawing.Size(240, 22);
             this.forwardBigToolStripMenuItem.Text = "Forward &20s";
             this.forwardBigToolStripMenuItem.Click += new System.EventHandler(this.forwardBigToolStripMenuItem_Click);
             // 
@@ -172,9 +174,9 @@
             // 
             this.backward1mToolStripMenuItem.Name = "backward1mToolStripMenuItem";
             this.backward1mToolStripMenuItem.ShortcutKeyDisplayString = "Ctrl+Shift+,";
-            this.backward1mToolStripMenuItem.ShortcutKeys = ((System.Windows.Forms.Keys)(((System.Windows.Forms.Keys.Control | System.Windows.Forms.Keys.Shift)
-                        | System.Windows.Forms.Keys.Oemcomma)));
-            this.backward1mToolStripMenuItem.Size = new System.Drawing.Size(226, 22);
+            this.backward1mToolStripMenuItem.ShortcutKeys = ((System.Windows.Forms.Keys)(((System.Windows.Forms.Keys.Control | System.Windows.Forms.Keys.Shift) 
+            | System.Windows.Forms.Keys.Oemcomma)));
+            this.backward1mToolStripMenuItem.Size = new System.Drawing.Size(240, 22);
             this.backward1mToolStripMenuItem.Text = "Bac&kward 1m";
             this.backward1mToolStripMenuItem.Click += new System.EventHandler(this.backward1mToolStripMenuItem_Click);
             // 
@@ -182,47 +184,57 @@
             // 
             this.forward1mToolStripMenuItem.Name = "forward1mToolStripMenuItem";
             this.forward1mToolStripMenuItem.ShortcutKeyDisplayString = "Ctrl+Shift+.";
-            this.forward1mToolStripMenuItem.ShortcutKeys = ((System.Windows.Forms.Keys)(((System.Windows.Forms.Keys.Control | System.Windows.Forms.Keys.Shift)
-                        | System.Windows.Forms.Keys.OemPeriod)));
-            this.forward1mToolStripMenuItem.Size = new System.Drawing.Size(226, 22);
+            this.forward1mToolStripMenuItem.ShortcutKeys = ((System.Windows.Forms.Keys)(((System.Windows.Forms.Keys.Control | System.Windows.Forms.Keys.Shift) 
+            | System.Windows.Forms.Keys.OemPeriod)));
+            this.forward1mToolStripMenuItem.Size = new System.Drawing.Size(240, 22);
             this.forward1mToolStripMenuItem.Text = "For&ward 1m";
             this.forward1mToolStripMenuItem.Click += new System.EventHandler(this.forward1mToolStripMenuItem_Click);
             // 
             // backward5mToolStripMenuItem
             // 
             this.backward5mToolStripMenuItem.Name = "backward5mToolStripMenuItem";
-            this.backward5mToolStripMenuItem.ShortcutKeys = ((System.Windows.Forms.Keys)(((System.Windows.Forms.Keys.Control | System.Windows.Forms.Keys.Shift)
-                        | System.Windows.Forms.Keys.Left)));
-            this.backward5mToolStripMenuItem.Size = new System.Drawing.Size(226, 22);
+            this.backward5mToolStripMenuItem.ShortcutKeys = ((System.Windows.Forms.Keys)(((System.Windows.Forms.Keys.Control | System.Windows.Forms.Keys.Shift) 
+            | System.Windows.Forms.Keys.Left)));
+            this.backward5mToolStripMenuItem.Size = new System.Drawing.Size(240, 22);
             this.backward5mToolStripMenuItem.Text = "Backw&ard 5m";
             this.backward5mToolStripMenuItem.Click += new System.EventHandler(this.backward5mToolStripMenuItem_Click);
             // 
             // forward5mToolStripMenuItem
             // 
             this.forward5mToolStripMenuItem.Name = "forward5mToolStripMenuItem";
-            this.forward5mToolStripMenuItem.ShortcutKeys = ((System.Windows.Forms.Keys)(((System.Windows.Forms.Keys.Control | System.Windows.Forms.Keys.Shift)
-                        | System.Windows.Forms.Keys.Right)));
-            this.forward5mToolStripMenuItem.Size = new System.Drawing.Size(226, 22);
+            this.forward5mToolStripMenuItem.ShortcutKeys = ((System.Windows.Forms.Keys)(((System.Windows.Forms.Keys.Control | System.Windows.Forms.Keys.Shift) 
+            | System.Windows.Forms.Keys.Right)));
+            this.forward5mToolStripMenuItem.Size = new System.Drawing.Size(240, 22);
             this.forward5mToolStripMenuItem.Text = "Forwa&rd 5m";
             this.forward5mToolStripMenuItem.Click += new System.EventHandler(this.forward5mToolStripMenuItem_Click);
             // 
             // backward20mToolStripMenuItem
             // 
             this.backward20mToolStripMenuItem.Name = "backward20mToolStripMenuItem";
-            this.backward20mToolStripMenuItem.ShortcutKeys = ((System.Windows.Forms.Keys)(((System.Windows.Forms.Keys.Control | System.Windows.Forms.Keys.Shift)
-                        | System.Windows.Forms.Keys.Up)));
-            this.backward20mToolStripMenuItem.Size = new System.Drawing.Size(226, 22);
+            this.backward20mToolStripMenuItem.ShortcutKeys = ((System.Windows.Forms.Keys)(((System.Windows.Forms.Keys.Control | System.Windows.Forms.Keys.Shift) 
+            | System.Windows.Forms.Keys.Up)));
+            this.backward20mToolStripMenuItem.Size = new System.Drawing.Size(240, 22);
             this.backward20mToolStripMenuItem.Text = "Backwar&d 20m";
             this.backward20mToolStripMenuItem.Click += new System.EventHandler(this.backward20mToolStripMenuItem_Click);
             // 
             // forward20mToolStripMenuItem
             // 
             this.forward20mToolStripMenuItem.Name = "forward20mToolStripMenuItem";
-            this.forward20mToolStripMenuItem.ShortcutKeys = ((System.Windows.Forms.Keys)(((System.Windows.Forms.Keys.Control | System.Windows.Forms.Keys.Shift)
-                        | System.Windows.Forms.Keys.Down)));
-            this.forward20mToolStripMenuItem.Size = new System.Drawing.Size(226, 22);
+            this.forward20mToolStripMenuItem.ShortcutKeys = ((System.Windows.Forms.Keys)(((System.Windows.Forms.Keys.Control | System.Windows.Forms.Keys.Shift) 
+            | System.Windows.Forms.Keys.Down)));
+            this.forward20mToolStripMenuItem.Size = new System.Drawing.Size(240, 22);
             this.forward20mToolStripMenuItem.Text = "Forward 20&m";
             this.forward20mToolStripMenuItem.Click += new System.EventHandler(this.forward20mToolStripMenuItem_Click);
+            // 
+            // labelTimeHelp
+            // 
+            this.labelTimeHelp.AutoSize = true;
+            this.labelTimeHelp.Font = new System.Drawing.Font("Consolas", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.labelTimeHelp.Location = new System.Drawing.Point(134, 29);
+            this.labelTimeHelp.Name = "labelTimeHelp";
+            this.labelTimeHelp.Size = new System.Drawing.Size(56, 14);
+            this.labelTimeHelp.TabIndex = 9;
+            this.labelTimeHelp.Text = "h:mm:ss";
             // 
             // SeekForm
             // 
@@ -230,7 +242,8 @@
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.CancelButton = this.cancelButton;
-            this.ClientSize = new System.Drawing.Size(261, 107);
+            this.ClientSize = new System.Drawing.Size(261, 116);
+            this.Controls.Add(this.labelTimeHelp);
             this.Controls.Add(this.label1);
             this.Controls.Add(this.maskedTextBoxSeekTime);
             this.Controls.Add(this.cancelButton);
@@ -267,5 +280,6 @@
         private System.Windows.Forms.ToolStripMenuItem forward5mToolStripMenuItem;
         private System.Windows.Forms.ToolStripMenuItem backward20mToolStripMenuItem;
         private System.Windows.Forms.ToolStripMenuItem forward20mToolStripMenuItem;
+        private System.Windows.Forms.Label labelTimeHelp;
     }
 }

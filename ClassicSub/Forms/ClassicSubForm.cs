@@ -11,6 +11,7 @@ using System.Runtime.InteropServices;
 using MpcApi;
 using System.IO;
 using System.Text.RegularExpressions;
+using ClassicSub.Forms;
 
 namespace ClassicSub
 {
@@ -86,7 +87,19 @@ namespace ClassicSub
 
         void UpdateUITimer_Tick(object sender, EventArgs e)
         {
-            if (VideoCurrentlyOpen && subList.Count > 0)
+            if (   subList.Count > 0
+                && VideoCurrentlyPlaying
+                && autoSkipCheckBox.Checked
+                && GetCurrentTimeSubText().ToLower().Contains("<skip"))
+            {
+                int endTime = GetCurrentTimeSubEndTime();
+
+                if (endTime > 0)
+                {
+                    SendSetPosition(endTime / 1000.0 + 0.1);
+                }
+            }
+            else if (VideoCurrentlyOpen && subList.Count > 0)
             {
                 UpdateUITime();
                 UpdateNextNewSubtitle();
@@ -105,10 +118,10 @@ namespace ClassicSub
                 if (index != CurrentlyHighlightedRow
                     || fullyLit != CurrentlyHighlightFullyLit)
                 {
+                    string text = GetCurrentTimeSubText();
+
                     if (overlay != null)
                     {
-                        string text = GetCurrentTimeSubText();
-
                         if (text != overlay.SubTitleText)
                         {
                             overlay.SetSubtitle(text);
@@ -117,9 +130,9 @@ namespace ClassicSub
 
                     bool refresh = false;
 
-                    if ((index >= dataGridView.FirstDisplayedScrollingRowIndex
+                    if ((      index >= dataGridView.FirstDisplayedScrollingRowIndex
                             && index <= dataGridView.FirstDisplayedScrollingRowIndex + displayedRowCount - 1)
-                        || (CurrentlyHighlightedRow >= dataGridView.FirstDisplayedScrollingRowIndex
+                        || (   CurrentlyHighlightedRow >= dataGridView.FirstDisplayedScrollingRowIndex
                             && CurrentlyHighlightedRow <= dataGridView.FirstDisplayedScrollingRowIndex + displayedRowCount - 1))
                     {
                         // We should refresh, because either the current or the previously highlighted row is on screen
@@ -329,6 +342,30 @@ namespace ClassicSub
             }
         }
 
+        void DoOpenSUBFile(string fileName, double frameRate)
+        {
+            Cursor.Current = Cursors.WaitCursor;
+
+            BindingList<Subtitle> subListTemp = Subtitle.ReadSUBFile(fileName, frameRate);
+
+            if (subListTemp != null)
+            {
+                SubtitleFileName[1] = "";
+                subList = subListTemp;
+                dataGridView.DataSource = subList;
+                UpdateUI();
+                DoRenumber();
+
+                dataGridView.Columns["SubText2"].Visible = false;
+                dataGridView.Columns["SubText3"].Visible = false;
+                dataGridView.Columns["SubText4"].Visible = false;
+
+                Text2Enabled = false;
+                Text3Enabled = false;
+                Text4Enabled = false;
+            }
+        }
+
         void DoAppendFile(string fileName, int offset)
         {
             BindingList<Subtitle> subListTemp = Subtitle.ReadSubtitleFile(fileName);
@@ -369,11 +406,20 @@ namespace ClassicSub
                 {
                     foreach (Subtitle sub in subList)
                     {
+                        char[] charsToRemove = new char[] {'\n', '\r'};
+                        string subText = sub.GetSubText(textIndex);
+                        subText = subText.Trim(charsToRemove);
+
+                        if (subText.Trim().Length == 0)
+                        {
+                            subText = " ";
+                        }
+
                         string timeLine = String.Format("{0} --> {1}", sub.GetStartForSRT(), sub.GetEndForSRT());
 
                         writer.WriteLine(sub.Number);
                         writer.WriteLine(timeLine);
-                        writer.WriteLine(sub.GetSubText(textIndex));
+                        writer.WriteLine(subText);
                         writer.WriteLine();
                     }
                 }
@@ -407,7 +453,7 @@ namespace ClassicSub
 
                     if (seek.okClicked)
                     {
-                        SendSetPosition(seek.GetSeekTime() / 1000);
+                        SendSetPosition(seek.GetSeekTime() / 1000.0);
                     }
                 }
             }
@@ -453,25 +499,42 @@ namespace ClassicSub
             return subText;
         }
 
+        int GetCurrentTimeSubEndTime()
+        {
+            int curEndTime = -1;
+            int curPos = CurrentPositionMs;
+
+            foreach (Subtitle subObj in subList)
+            {
+                // return the index of the latest subtitle that starts before the current time
+                if (subObj.StartMs <= curPos && subObj.EndMs >= curPos)
+                {
+                    curEndTime = subObj.EndMs;
+                }
+            }
+
+            return curEndTime;
+        }
+
         string GetOverlaySubtitleText(Subtitle subObj)
         {
             string subText = subObj.SubText1;
 
             if (Text2Enabled && subObj.SubText2.Length > 0)
             {
-                subText += "\n";
+                subText += Environment.NewLine;
                 subText += subObj.SubText2;
             }
 
             if (Text3Enabled && subObj.SubText3.Length > 0)
             {
-                subText += "\n";
+                subText += Environment.NewLine;
                 subText += subObj.SubText3;
             }
 
             if (Text4Enabled && subObj.SubText4.Length > 0)
             {
-                subText += "\n";
+                subText += Environment.NewLine;
                 subText += subObj.SubText4;
             }
 
@@ -623,6 +686,18 @@ namespace ClassicSub
             }
 
             return idx;
+        }
+
+        int GetFirstSubtitleStartTime()
+        {
+            int startTime = 0;
+
+            if (subList.Count > 0)
+            {
+                startTime = subList[0].StartMs;
+            }
+
+            return startTime;
         }
 
         int GetLastSubtitleEndTime()
@@ -878,12 +953,30 @@ namespace ClassicSub
                                 if (cell.OwningColumn.DataPropertyName == "Start")
                                 {
                                     subList[cell.RowIndex].StartMs = Math.Max(subList[cell.RowIndex].StartMs + nudgeTime, 0);
-                                    DoAutoDuration(cell.RowIndex);
-                                    DoAutoDuration(cell.RowIndex - 1);
                                 }
                                 else if (cell.OwningColumn.DataPropertyName == "End")
                                 {
                                     subList[cell.RowIndex].EndMs = Math.Max(subList[cell.RowIndex].EndMs + nudgeTime, 0);
+                                }
+                            }
+                        }
+
+                        foreach (DataGridViewCell cell in dataGridView.SelectedCells)
+                        {
+                            if (cell.RowIndex < subList.Count)
+                            {
+                                if (cell.OwningColumn.DataPropertyName == "Start" || cell.OwningColumn.DataPropertyName == "End")
+                                {
+                                    if (nudge.recalcDurationChecked)
+                                    {
+                                        DoAutoDuration(cell.RowIndex);
+                                        DoAutoDuration(cell.RowIndex - 1);
+                                    }
+                                    else
+                                    {
+                                        EnsureNoDurationOverlap(cell.RowIndex);
+                                        EnsureNoDurationOverlap(cell.RowIndex - 1);
+                                    }
                                 }
                             }
                         }
@@ -933,8 +1026,97 @@ namespace ClassicSub
             }
         }
 
+        void DoSkipCurrent()
+        {
+            if (dataGridView.CurrentCell != null)
+            {
+                dataGridView.CommitEdit(DataGridViewDataErrorContexts.Commit);
+                dataGridView.ClearSelection();
+
+                int idx = dataGridView.CurrentCell.RowIndex;
+
+                if (idx < subList.Count)
+                {
+                    if (!subList[idx].SubText1.ToLower().Contains("<skip")
+                        && !subList[idx].SubText2.ToLower().Contains("<skip")
+                        && !subList[idx].SubText3.ToLower().Contains("<skip")
+                        && !subList[idx].SubText4.ToLower().Contains("<skip"))
+                    {
+                        subList[idx].SubText1 = "<skip> " + subList[idx].SubText1;
+                    }
+                }
+            }
+        }
+
+        void DoScale(ScaleRange range, int subAnchor, int movieAnchor, double scale, bool recalcDuration)
+        {
+            dataGridView.CommitEdit(DataGridViewDataErrorContexts.Commit);
+
+            if (range == ScaleRange.Selected)
+            {
+                if (dataGridView.SelectedCells != null && subList.Count > 0)
+                {
+                    foreach (DataGridViewCell cell in dataGridView.SelectedCells)
+                    {
+                        UpdateScale(cell.RowIndex, subAnchor, movieAnchor, scale);
+                    }
+
+                    foreach (DataGridViewCell cell in dataGridView.SelectedCells)
+                    {
+                        if (recalcDuration)
+                        {
+                            DoAutoDuration(cell.RowIndex);
+                            DoAutoDuration(cell.RowIndex - 1);
+                        }
+                        else
+                        {
+                            EnsureNoDurationOverlap(cell.RowIndex);
+                            EnsureNoDurationOverlap(cell.RowIndex - 1);
+                        }
+                    }
+                }
+            }
+            else
+            {
+                for (int i = 0; i < subList.Count; i++)
+                {
+                    UpdateScale(i, subAnchor, movieAnchor, scale);
+                }
+
+                for (int i = 0; i < subList.Count; i++)
+                {
+                    if (recalcDuration)
+                    {
+                        DoAutoDuration(i);
+                        DoAutoDuration(i - 1);
+                    }
+                    else
+                    {
+                        EnsureNoDurationOverlap(i);
+                        EnsureNoDurationOverlap(i - 1);
+                    }
+                }
+            }
+        }
+
+        void UpdateScale(int index, int subAnchor, int movieAnchor, double scale)
+        {
+            if (index >= 0 && index < subList.Count)
+            {
+                Subtitle sub = subList[index];
+
+                Double newStart = (Double)(sub.StartMs - subAnchor) * scale + ((Double)movieAnchor) + 0.5;
+                Double newEnd = (Double)(sub.EndMs - subAnchor) * scale + ((Double)movieAnchor) + 0.5;
+
+                sub.StartMs = (Int32)newStart;
+                sub.EndMs = (Int32)newEnd;
+            }
+        }
+
         void DoDuration(DurationRange range, DurationUpdate update, DurationCalculation calculation)
         {
+            Cursor.Current = Cursors.WaitCursor;
+
             dataGridView.CommitEdit(DataGridViewDataErrorContexts.Commit);
 
             if (range == DurationRange.Selected)
@@ -961,6 +1143,25 @@ namespace ClassicSub
             if (ConfigForm.GetAutoDuration())
             {
                 UpdateDuration(index, DurationUpdate.SetToCalculated, DurationCalculation.Algorithm);
+            }
+        }
+
+        void EnsureNoDurationOverlap(int index)
+        {
+             if (index >= 0 && index < subList.Count)
+             {
+                Subtitle sub = subList[index];
+                
+                // ensure no overlap
+                if ((index + 1) < subList.Count)
+                {
+                    Subtitle nextSub = subList[index + 1];
+
+                    if (nextSub.StartMs - sub.StartMs < sub.DurationMs)
+                    {
+                        sub.DurationMs = Math.Max(nextSub.StartMs - sub.StartMs, 0);
+                    }
+                }
             }
         }
 
@@ -1102,10 +1303,12 @@ namespace ClassicSub
         {
             bool matches = false;
 
-            if (index < subList.Count && toolStripTextBoxFind.Text != "")
+            if (   findEnabled
+                && index < subList.Count
+                && toolStripTextBoxFind.Text != "")
             {
                 Subtitle sub = subList[index];
-                string combinedString = sub.SubText1 + "\n" + sub.SubText2 + "\n" + sub.SubText3 + "\n" + sub.SubText4;
+                string combinedString = sub.SubText1 + Environment.NewLine + sub.SubText2 + Environment.NewLine + sub.SubText3 + Environment.NewLine + sub.SubText4;
                 string testString = combinedString.ToLowerInvariant();
                 string matchString = toolStripTextBoxFind.Text.ToLowerInvariant();
 
@@ -1166,6 +1369,26 @@ namespace ClassicSub
                         DoTextOpenByNumberFile(count, file);
                     }
                     count++;
+                }
+            }
+        }
+
+        private void toolStripMenuItemOpenSubFormat_Click(object sender, EventArgs e)
+        {
+            DialogResult result = openSubFileDialog.ShowDialog();
+
+            if (result == DialogResult.OK)
+            {
+                using (FrameRateForm frameRate = new FrameRateForm())
+                {
+                    frameRate.ShowDialog(this);
+
+                    if (frameRate.okClicked)
+                    {
+                        Cursor.Current = Cursors.WaitCursor;
+
+                        DoOpenSUBFile(openSubFileDialog.FileName, frameRate.GetFrameRate());
+                    }
                 }
             }
         }
@@ -1268,6 +1491,75 @@ namespace ClassicSub
         private void toolStripTextBoxFind_TextChanged(object sender, EventArgs e)
         {
             dataGridView.Refresh();
+        }
+        
+        // need a bit of state to properly select all in the textbox when the user sets focus to it
+
+        private bool findTextBoxFocused = false;
+        private bool findEnabled = false;
+
+        private void toolStripTextBoxFind_Enter(object sender, EventArgs e)
+        {
+            if (MouseButtons == MouseButtons.None)
+            {
+                if (findEnabled)
+                {
+                    toolStripTextBoxFind.SelectAll();
+                }
+                else
+                {
+                    toolStripTextBoxFind.Text = ""; // empty the box instead of selecting 'find'
+                }
+
+                findTextBoxFocused = true;
+
+                //enable the find buttons and menu items
+                findEnabled = true;
+                buttonFindPrev.Enabled = true;
+                buttonFindNext.Enabled = true;            
+            }
+        }
+
+
+        private void toolStripTextBoxFind_MouseUp(object sender, MouseEventArgs e)
+        {
+            if (!findTextBoxFocused && toolStripTextBoxFind.SelectionLength == 0)
+            {
+                if (findEnabled)
+                {
+                    toolStripTextBoxFind.SelectAll();
+                }
+                else
+                {
+                    toolStripTextBoxFind.Text = ""; // empty the box instead of selecting 'find'
+                }
+            }
+
+            //enable the find buttons and menu items
+            findEnabled = true;
+            buttonFindPrev.Enabled = true;
+            buttonFindNext.Enabled = true;
+            
+            findTextBoxFocused = true;
+        }
+
+        private void toolStripTextBoxFind_Leave(object sender, EventArgs e)
+        {
+            findTextBoxFocused = false;
+
+            if (toolStripTextBoxFind.Text == "")
+            {
+                //disable the find buttons and menu items
+                findEnabled = false;
+                buttonFindPrev.Enabled = false;
+                buttonFindNext.Enabled = false;
+                toolStripTextBoxFind.Text = "Find";
+            }
+        }
+
+        private void toolStripTextBoxFind_ModifiedChanged(object sender, EventArgs e)
+        {
+
         }
 
         private void toolStripTextBoxFind_KeyPress(object sender, KeyPressEventArgs e)
@@ -1434,6 +1726,22 @@ namespace ClassicSub
             }
         }
 
+
+        private void toolStripMenuItemScaleStartEndTimes_Click(object sender, EventArgs e)
+        {
+            using (ScaleForm scale = new ScaleForm(GetFirstSubtitleStartTime(), GetLastSubtitleEndTime()))
+            {
+                scale.ShowDialog(this);
+
+                if (scale.ClosedWithOK == true)
+                {
+                    Cursor.Current = Cursors.WaitCursor;
+
+                    DoScale(scale.Range, scale.SubtitleAnchor, scale.MovieAnchor, scale.SubScale, scale.RecalcDuration);
+                }
+            }
+        }
+        
         // Context Menu
         private void toolStripMenuItemContextEditCurrent_Click(object sender, EventArgs e)
         {
@@ -1473,6 +1781,11 @@ namespace ClassicSub
         private void setCurrentEndTimeToolStripMenuItem_Click(object sender, EventArgs e)
         {
             DoSetCurrentEnd();
+        }
+
+        private void toolStripMenuItemSkipCurrent_Click(object sender, EventArgs e)
+        {
+            DoSkipCurrent();
         }
 
         // Datagrid
@@ -1629,13 +1942,19 @@ namespace ClassicSub
         // Notification Overrides
         protected override void NotifyConnected()
         {
-            toolStripMPCState.Text = "Connected";
+            toolStripMPCState.Text = "Connected to MPC";
+            UpdateUI();
+        }
+
+        protected override void NotifyDisconnected()
+        {
+            toolStripMPCState.Text = "Not Connected to MPC";
             UpdateUI();
         }
 
         protected override void NotifyClosed() 
         {
-            toolStripMPCState.Text = "Connected";
+            toolStripMPCState.Text = "Connected to MPC";
             UpdateUI();
         }
         
@@ -1787,66 +2106,200 @@ namespace ClassicSub
             }
         }
 
+        private void toolStripMenuItemMergeFile_Click(object sender, EventArgs e)
+        {
+            Cursor.Current = Cursors.WaitCursor;
+
+            DialogResult result = appendFileDialog.ShowDialog();
+
+            if (result == DialogResult.OK)
+            {
+                Cursor.Current = Cursors.WaitCursor;
+
+                DoAppendFile(appendFileDialog.FileName, 0);
+            }
+        }
+
         // Split/join
 
         private void split2WaysToolStripMenuItem_Click(object sender, EventArgs e)
         {
-
+            Text2Enabled = true;
+            dataGridView.Columns["SubText2"].Visible = true;
+            DoSplit(2);
         }
+
         private void split3WaysToolStripMenuItem_Click(object sender, EventArgs e)
         {
-
+            Text2Enabled = true;
+            Text3Enabled = true;
+            dataGridView.Columns["SubText2"].Visible = true;
+            dataGridView.Columns["SubText3"].Visible = true;
+            DoSplit(3);
         }
 
         private void split4WaysToolStripMenuItem_Click(object sender, EventArgs e)
         {
-
+            Text2Enabled = true;
+            Text3Enabled = true;
+            Text4Enabled = true;
+            dataGridView.Columns["SubText2"].Visible = true;
+            dataGridView.Columns["SubText3"].Visible = true;
+            dataGridView.Columns["SubText4"].Visible = true;
+            DoSplit(4);
         }
 
-        public static int CountStringOccurrences(string text, string pattern)
+        int StringMean(string str)
         {
-            // Loop through all instances of the string 'text'.
-            int count = 0;
-            int i = 0;
-            while ((i = text.IndexOf(pattern, i)) != -1)
+            int total = 0;
+            int mean = 0;
+
+            if (str.Length > 0)
             {
-                i += pattern.Length;
-                count++;
+                foreach (char chr in str)
+                {
+                    total += (Int32)chr;
+                }
+
+                mean = total / str.Length;
             }
-            return count;
-        }
-        
-        int LineLength(string s)
-        {
-            return CountStringOccurrences(s, "\n") + 1;
+
+            return mean;
         }
 
-        int LongestLine(Subtitle sub)
+        void DoSplit(int count)
         {
-            int longest = LineLength(sub.SubText1);
-            longest = Math.Max(longest, LineLength(sub.SubText2));
-            longest = Math.Max(longest, LineLength(sub.SubText3));
-            longest = Math.Max(longest, LineLength(sub.SubText4));
-            return longest;
+            Cursor.Current = Cursors.WaitCursor;
+
+            foreach (Subtitle sub in subList)
+            {
+                char[] charsToRemove = new char[] {'\n', '\r'};
+                char[] splitchars = new char[] {'\n'};
+                string[] lines = sub.SubText1.Split(splitchars);
+
+                if (lines != null && lines.Length > 1)
+                {
+                    if (lines.Length % count == 0)
+                    {
+                        int linesPerSub = lines.Length / count;
+ 
+                        for (int i = 0; i < count; i++)
+                        {
+                            string subText = "";
+
+                            for (int j = 0; j < linesPerSub; j++)
+                            {
+                                if (subText.Length > 0)
+                                {
+                                    subText += Environment.NewLine;
+                                }
+                                subText += lines[i * linesPerSub + j].Trim(charsToRemove);
+                            }
+
+                            sub.SetSubText(i + 1, subText);
+                        }
+                    }
+                    else
+                    {
+                        int minLinesPerSub = lines.Length / count;
+                        int pos = 0;
+
+                        for (int i = 0; i < count; i++)
+                        {
+                            string subText = "";
+                            int cur = 0;
+
+                            while (pos < lines.Length && (cur < minLinesPerSub || i == count-1))
+                            {
+                                if (subText.Length > 0)
+                                {
+                                    subText += Environment.NewLine;
+                                }
+                                subText += lines[pos].Trim(charsToRemove);
+                                cur++;
+                                pos++;
+                            }
+
+                            if (pos > 0 && pos < lines.Length-1)
+                            {
+                                string lastStr = lines[pos - 1].Trim(charsToRemove);
+                                string curStr = lines[pos].Trim(charsToRemove);
+                                string nextStr = lines[pos + 1].Trim(charsToRemove);
+
+                                int lastmean = StringMean(lastStr);
+                                int curmean = StringMean(curStr);
+                                int nextmean = StringMean(nextStr);
+
+                                int lastdiff = Math.Abs(lastmean - curmean);
+                                int nextdiff = Math.Abs(nextmean - curmean);
+
+                                if (lastdiff <= nextdiff)
+                                {
+                                    if (subText.Length > 0)
+                                    {
+                                        subText += Environment.NewLine;
+                                    }
+                                    subText += lines[pos].Trim(charsToRemove);
+                                    cur++;
+                                    pos++;
+                                }
+                            }
+
+                            sub.SetSubText(i + 1, subText);
+                        }
+                    }
+                }
+            }
         }
+
+        /*
+                public static int CountStringOccurrences(string text, string pattern)
+                {
+                    // Loop through all instances of the string 'text'.
+                    int count = 0;
+                    int i = 0;
+                    while ((i = text.IndexOf(pattern, i)) != -1)
+                    {
+                        i += pattern.Length;
+                        count++;
+                    }
+                    return count;
+                }
+        
+                int NumberOfLines(string s)
+                {
+                    return CountStringOccurrences(s, "\n") + 1;
+                }
+
+
+                int LongestLine(Subtitle sub)
+                {
+                    int longest = LineLength(sub.SubText1);
+                    longest = Math.Max(longest, LineLength(sub.SubText2));
+                    longest = Math.Max(longest, LineLength(sub.SubText3));
+                    longest = Math.Max(longest, LineLength(sub.SubText4));
+                    return longest;
+                } */
 
         private void mergeDownToolStripMenuItem_Click(object sender, EventArgs e)
         {
+            Cursor.Current = Cursors.WaitCursor;
+
             foreach (Subtitle sub in subList)
             {
                 string newsubtext = sub.SubText1;
 
                 if (Text2Enabled)
                 {
-                    newsubtext = newsubtext + "\r\n" + sub.SubText2;
+                    newsubtext = newsubtext + Environment.NewLine + sub.SubText2;
                     
                     if (Text3Enabled)
                     {
-                        newsubtext = newsubtext + "\r\n" + sub.SubText3;
+                        newsubtext = newsubtext + Environment.NewLine + sub.SubText3;
 
                         if (Text4Enabled)
                         {
-                            newsubtext = newsubtext + "\r\n" + sub.SubText4;
+                            newsubtext = newsubtext + Environment.NewLine + sub.SubText4;
                         }
                     }
                 }
@@ -2073,7 +2526,7 @@ namespace ClassicSub
                                 }
                                 else
                                 {
-                                    subList[bestMatchIdx].SetSubText(textNum, current + "\n" + subTemp.SubText1);
+                                    subList[bestMatchIdx].SetSubText(textNum, current + Environment.NewLine + subTemp.SubText1);
                                 }
                             }
                             else
@@ -2202,8 +2655,8 @@ namespace ClassicSub
 
             foreach (Subtitle sub in subList)
             {
-                buffer += sub.GetSubText(textNum).Replace("\r\n", "\t").Replace("\n", "\t");
-                buffer += "\r\n";
+                buffer += sub.GetSubText(textNum).Replace(Environment.NewLine, "\t").Replace("\n", "\t");
+                buffer += Environment.NewLine;
             }
 
             Clipboard.SetDataObject(buffer, true);
@@ -2476,7 +2929,8 @@ namespace ClassicSub
 
         private void toolsToolStripMenuItem_DropDownOpened(object sender, EventArgs e)
         {
-
+            toolStripMenuItemFindPrevious.Enabled = findEnabled;
+            toolStripMenuItemFindNext.Enabled = findEnabled;
         }
 
         private void googleTranslateToolStripMenuItem_Click(object sender, EventArgs e)
@@ -2658,6 +3112,48 @@ namespace ClassicSub
                 Point middle = new Point(overlay.ClientRectangle.Left + overlay.ClientSize.Width / 2,
                                          overlay.ClientRectangle.Top + overlay.ClientSize.Height / 2);
                 overlay.ContextMenuStrip.Show(middle);
+            }
+        }
+
+        private void ClassicSubForm_DragEnter(object sender, DragEventArgs e)
+        {
+            if (e.Data.GetDataPresent(DataFormats.FileDrop))
+            {
+                e.Effect = DragDropEffects.Copy;
+            }
+
+        }
+
+        private void ClassicSubForm_DragDrop(object sender, DragEventArgs e)
+        {
+            string[] files = (string[])e.Data.GetData(DataFormats.FileDrop);
+
+            if (files != null)
+            {
+                if (files.Length == 1)
+                {
+                    if (MessageBox.Show("Replace currently open subtitles with this file?", "Open dropped file", MessageBoxButtons.YesNo) == DialogResult.Yes)
+                    {
+                        DoOpenFile(files[0]);
+                    }
+                }
+                else if (files.Length > 0)
+                {
+                    if (MessageBox.Show("Replace currently open subtitles with these files?", "Open dropped files", MessageBoxButtons.YesNo) == DialogResult.Yes)
+                    {
+                        int count = 1;
+                        foreach (string file in files)
+                        {
+                            DoTextOpenByNumberFile(count, file);
+                            count++;
+                            if (count > 4)
+                            {
+                                // only open 4 files
+                                break;
+                            }
+                        }
+                    }
+                }
             }
         }
     }
